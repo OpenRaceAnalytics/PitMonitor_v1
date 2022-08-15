@@ -1,0 +1,3 @@
+[submodule "setup_common"]
+	path = setup_common
+	url = https://github.com/OpenRaceAnalytics/setup_common
