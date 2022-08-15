@@ -19,3 +19,6 @@ CIDR: 222.111.222.0/24
     - Hostname: ora-pitmon.local
     - User: ora
 - IPV4: 222.111.222.10/24
+
+# Install
+- git clone https://github.com/OpenRaceAnalytics/PitMonitor_v1.git --recurse-submodule
