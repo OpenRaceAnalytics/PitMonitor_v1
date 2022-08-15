@@ -23,71 +23,61 @@
 #SOFTWARE.
 
 debug=false
+export INSTALL_LOG="/var/log/pitmon_install.log" 
+
+if ! grep -q "# install log create." $INSTALL_LOG; then
+    echo '# install log create.' | sudo tee -a $INSTALL_LOG
+fi
 
 echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] ....apt update...."
 sudo apt-get update
 
-chmod +x ./common/*.sh
+chmod +x ./setup_common/scripts/*.sh
 
 if [ $debug == false ]; then
   echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] ....apt upgrade...."
   sudo apt-get full-upgrade -y
 
   echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] .... install tools ...."
-  ./common/tools_install.sh
+  ./setup_common/scripts/tools_install_gui.sh
 
   echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] .... install gpsd ...."
-  ./common/gpsd_install.sh  
+  ./setup_common/scripts/gpsd_install.sh  
 
   echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] .... configure gpsd ...."
-  # Crontab
-  line="@reboot sudo stty -F /dev/ttyS0 115200"
-  (crontab -u $(whoami) -l; echo "$line" ) | crontab -u $(whoami) -
-  sudo stty -F /dev/ttyS0 115200
-  # gpsd config
-  sudo sed -i '/DEVICES=\"\"/ c\DEVICES=\"/dev/ttyS0\"' /etc/default/gpsd
-  # pps config
-  if ! grep -q "# GPSD and PPS config" /boot/config.txt; then
-    echo '# GPSD and PPS config' | sudo tee -a /boot/config.txt
-    # echo 'enable_uart=1' | sudo tee -a /boot/config.txt
-    echo 'init_uart_baud=115200' | sudo tee -a /boot/config.txt
-    echo 'dtoverlay=pps-gpio,gpiopin=5' | sudo tee -a /boot/config.txt
+  if ! grep -q "# configure gpsd done." $INSTALL_LOG; then
+    # Chrony Timeserver 
+    sudo cp -rf setup_common/files/chrony/chrony_server.conf /etc/chrony/chrony.conf
+    sudo ln -s /lib/systemd/system/gpsd.service /etc/systemd/system/multi-user.target.wants/
+    # Crontab
+    line="@reboot sudo stty -F /dev/ttyS0 115200"
+    (crontab -u $(whoami) -l; echo "$line" ) | crontab -u $(whoami) -
+    sudo stty -F /dev/ttyS0 115200
+    # gpsd config
+    sudo sed -i '/DEVICES=\"\"/ c\DEVICES=\"/dev/ttyS0\"' /etc/default/gpsd
+    # pps config
+    if ! grep -q "# GPSD and PPS config" /boot/config.txt; then
+      echo '# GPSD and PPS config' | sudo tee -a /boot/config.txt
+      echo 'init_uart_baud=115200' | sudo tee -a /boot/config.txt
+      echo 'dtoverlay=pps-gpio,gpiopin=4' | sudo tee -a /boot/config.txt
+    fi
+
+    echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] .... restart gpsd ...."
+    ./setup_common/scripts/gpsd_restart.sh
+
+    echo '# configure gpsd done.' | sudo tee -a $INSTALL_LOG
   fi
 
-  echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] .... restart gpsd ...."
-  ./common/gpsd_restart.sh
-
-  echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] .... install go ...."
-  wget https://go.dev/dl/go1.19.linux-armv6l.tar.gz
-  sudo tar -C /usr/local -xzf go1.19.linux-armv6l.tar.gz
-  rm go1.19.linux-armv6l.tar.gz
-  ./common/go_install.sh
+  
+  echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] .... install rtc ...."
+  ./setup_common/scripts/ds3231_install.sh
 
   echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] .... install mqtt ...."
-  ./common/mqtt_install.sh
-  #./common/mqtt_benchmark_install.sh
-
-  echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] .... install pyLoRa ...."
-  ./common/pyLora_install.sh
-
-  echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] .... install ssh1106 ...."
-  ./common/sh1106_install.sh
-
-  line="@reboot python3 /home/axe/ssh1106/display.py &"
-  (crontab -u $(whoami) -l; echo "$line" ) | crontab -u $(whoami) -
-  #python3 /home/axe/ssh1106/display.py &
-
-  echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] .... install rtc ...."
-  ./common/ds3231_install.sh
-
-  echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] .... install can ...."
-  ./common/can_install.sh
-
-  echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] .... install can ...."
-  ./common/ads1115_install.sh
+  ./setup_common/scripts/mqtt_install.sh
+  #./setup_common/scripts/mqtt_benchmark_install.sh
 
   echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] .... disable swap ...."
-  ./common/disable_swap.sh
+  ./setup_common/scripts/disable_swap.sh
 fi
 
 if [ $debug == true ]; then
@@ -97,8 +87,12 @@ fi
 
 if [ $debug == false ]; then
   echo "[...---... OpenRaceAnalytics - PitMonitor v1 Install ...---...] .... cleanup ...."
-  sudo rm -rf tmp
-  sudo apt-get update
-  sudo apt-get upgrade -y
-  sudo apt-get autoremove -y
+  if ! grep -q "# cleanup done." $INSTALL_LOG; then
+    sudo rm -rf tmp
+    sudo apt-get update
+    sudo apt-get upgrade -y
+    sudo apt-get autoremove -y
+    sudo reboot
+    echo '# cleanup done.' | sudo tee -a $INSTALL_LOG
+  fi
 fi
