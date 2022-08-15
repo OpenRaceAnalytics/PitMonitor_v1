@@ -22,4 +22,6 @@ CIDR: 222.111.222.0/24
 
 # Install
 - git clone https://github.com/OpenRaceAnalytics/PitMonitor_v1.git --recurse-submodule
+- cd PitMonitor_v1
 - chmod +x setup.sh
+- ./setup.sh
