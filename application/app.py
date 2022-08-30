@@ -1,8 +1,8 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton
 
 # Only needed for access to command line arguments
-import sys
-
+import sys 
+import os
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -10,7 +10,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("My App")
 
-        button = QPushButton("Press Me!")
+        button = QPushButton("Reboot")
         button.setCheckable(True)
         button.clicked.connect(self.the_button_was_clicked)
 
@@ -19,6 +19,7 @@ class MainWindow(QMainWindow):
 
     def the_button_was_clicked(self):
         print("Clicked!")
+        os.system("sudo reboot")
         self.close()
 
 
