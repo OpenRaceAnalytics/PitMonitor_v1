@@ -1,3 +1,6 @@
 [submodule "setup_common"]
 	path = setup_common
 	url = https://github.com/OpenRaceAnalytics/setup_common
+[submodule "application/pps-tools"]
+	path = application/pps-tools
+	url = https://gitlab.com/srfilipek/pps-tools.git
